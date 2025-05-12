@@ -37,7 +37,7 @@ func main() {
 	fmt.Println("Database seeded successfully")
 }
 
-func seedUsers(db *sql.DB) error {
+func seedUsers(db *sql.DB) (err error) {
 	// Sample users data
 	users := []struct {
 		username     string
@@ -68,11 +68,14 @@ func seedUsers(db *sql.DB) error {
 		return err
 	}
 	defer func() {
-		if err != nil {
+		if p := recover(); p != nil {
 			tx.Rollback()
-			return
+			panic(p) // re-throw panic after rollback
+		} else if err != nil {
+			tx.Rollback() // err is non-nil; rollback
+		} else {
+			err = tx.Commit() // err is nil; commit
 		}
-		err = tx.Commit()
 	}()
 
 	// Insert users
